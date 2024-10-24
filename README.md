@@ -7,7 +7,7 @@ https://github.com/SiFiLabs/sifi-bridge-py
 Installation:
 
 download the latest release in sifi-bridge-pub
-windows recommended: sifibridge-1.2.0-x86_64-pc-windows-msvc.zip
+windows recommended: sifibridge-1.1.3-x86_64-pc-windows-msvc.zip
 
 make sure you have python version 3.12
 
