@@ -108,13 +108,10 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
                     if "a" in k and data["IMU"][k]:
                         send_pd_message(k, data["IMU"][k][-1])
                     data["IMU"][k].extend(v)
-                # print(calculatePosition.quaternion_to_euler(data["IMU"]["qw"][-1], 
+                # send_pd_message("rpy",calculatePosition.quaternion_to_euler(data["IMU"]["qw"][-1], 
                 #                                             data["IMU"]["qx"][-1],
                 #                                             data["IMU"]["qy"][-1],
                 #                                             data["IMU"]["qz"][-1]))
-                
-                    
-
                     
             elif packet["packet_type"] == "ppg":
                 ppg = packet["data"]
@@ -124,12 +121,15 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
             if data["IMU"]["qw"] and data["IMU"]["qx"]\
                   and data["IMU"]["qy"] \
                     and data["IMU"]["qz"]:
-                pos = calculatePosition.update_position(data["IMU"], 0.1)[-1]
-                print(pos)
-                send_pd_message("POS", pos)
                     
-            #if data["IMU"]:
-            #print(calculatePosition.quaternion_to_euler(data["IMU"][-1]))
+                send_pd_message("pos", calculatePosition.update_position(data["IMU"], 0.01))
+
+                
+                #print(pos)
+                # send_pd_message("POS", pos)
+                    
+            if data["IMU"]:
+                print(calculatePosition.quaternion_to_euler(data["IMU"][-1]))
 
             
 
@@ -145,6 +145,9 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
     except Exception as e:
         print(f"An error occurred during data streaming: {e}")
     finally:
+        print(data["IMU"])
+        # calculatePosition.update_position(data["IMU"], 0.1)
+        calculatePosition.plotIT(calculatePosition.update_position(data["IMU"], 0.01))
         # Stop data streaming and disconnect the bridge.
         bridge.stop()
         bridge.disconnect()

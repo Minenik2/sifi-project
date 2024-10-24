@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import time
 
 def quaternion_to_euler(qw, qx, qy, qz):
     """
@@ -17,6 +18,8 @@ def quaternion_to_euler(qw, qx, qy, qz):
     roll = np.arctan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx**2 + qy**2))
     pitch = np.arcsin(2 * (qw * qy - qz * qx))
     yaw = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy**2 + qz**2))
+    # print("roll", roll, "pitch", pitch, "yaw", yaw)
+    # time.sleep(0.2)
     return roll, pitch, yaw
 
 def update_position(imu_data, delta_t):
@@ -84,23 +87,27 @@ imu_data = {
 delta_t = 0.1  # Time interval in seconds
 positions = update_position(imu_data, delta_t)
 
-# # Visualization
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
 
-# # Unzip the positions for plotting
-# x_positions, y_positions, z_positions = zip(*positions)
 
-# # Plot the ball's path
-# ax.plot(x_positions, y_positions, z_positions, marker='o', markersize=5)
+def plotIT(positions):
+    # Visualization
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
-# # Plot the final position as a ball
-# ax.scatter(x_positions[-1], y_positions[-1], z_positions[-1], color='red', s=100)  # Final position
+    # Unzip the positions for plotting
+    x_positions, y_positions, z_positions = zip(*positions)
 
-# # Set labels
-# ax.set_xlabel('X Position')
-# ax.set_ylabel('Y Position')
-# ax.set_zlabel('Z Position')
-# ax.set_title('3D Position of the Ball')
+    # Plot the ball's path
+    ax.plot(x_positions, y_positions, z_positions, marker='o', markersize=5)
 
-# plt.show()
+    # Plot the final position as a ball
+    ax.scatter(x_positions[-1], y_positions[-1], z_positions[-1], color='red', s=100)  # Final position
+
+    # Set labels
+    ax.set_xlabel('X Position')
+    ax.set_ylabel('Y Position')
+    ax.set_zlabel('Z Position')
+    ax.set_title('3D Position of the Ball')
+
+    plt.show()
+    
