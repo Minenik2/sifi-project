@@ -6,6 +6,7 @@ import pickle
 import os
 import time
 from pythonosc import udp_client
+import calculatePosition
 
 
 # Create an OSC client to send messages to Pure Data
@@ -16,6 +17,11 @@ pd_client = udp_client.SimpleUDPClient("192.168.1.171", 7777)  # Adjust host and
 def send_pd_message(parameter, value):
     address = f"/biopoint/{parameter}"  # Define OSC address pattern
     pd_client.send_message(address, value)
+
+def processDataEMG(emg):
+    return np.sqrt(np.abs(emg)) * 1000
+
+
 
 #Send data to Pure Data
 #for index, row in df_filtered.iterrows():
@@ -31,6 +37,8 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
     device_type: The type of BioPoint device to connect to.
     output_file (str): Filename to save the collected data.
     """
+
+    emgCounter = 0
     # List all BLE devices to see the name and ID of your BioPoint.
     devices = bridge.list_devices(sbp.ListSources.BLE)
     print("Available devices:")
@@ -81,6 +89,8 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
             elif packet["packet_type"] == "emg":
                 # print(packet["data"]["emg"])
                 emg = packet["data"]["emg"]
+                emg = processDataEMG(emg)
+                #print(emg)
                 data["EMG"].extend(emg)
                 # Sends the emg data to max
                 send_pd_message("emg", data["EMG"][-1])
@@ -90,15 +100,36 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
             elif packet["packet_type"] == "imu":
                 imu = packet["data"]
                 for k, v in imu.items():
-                    print(k)
+                    if v[0] is None:
+                        print("changed")
+                        for i in range(len(v)):
+                            if v[i] is None:
+                                v[i] = 0.0
                     if "a" in k and data["IMU"][k]:
                         send_pd_message(k, data["IMU"][k][-1])
                     data["IMU"][k].extend(v)
+                # print(calculatePosition.quaternion_to_euler(data["IMU"]["qw"][-1], 
+                #                                             data["IMU"]["qx"][-1],
+                #                                             data["IMU"]["qy"][-1],
+                #                                             data["IMU"]["qz"][-1]))
+                
+                    
+
                     
             elif packet["packet_type"] == "ppg":
                 ppg = packet["data"]
                 for k, v in ppg.items():
                     data["PPG"][k].extend(v)
+            
+            if data["IMU"]["qw"] and data["IMU"]["qx"]\
+                  and data["IMU"]["qy"] \
+                    and data["IMU"]["qz"]:
+                pos = calculatePosition.update_position(data["IMU"], 0.1)[-1]
+                print(pos)
+                send_pd_message("POS", pos)
+                    
+            #if data["IMU"]:
+            #print(calculatePosition.quaternion_to_euler(data["IMU"][-1]))
 
             
 
@@ -142,3 +173,71 @@ if __name__ == '__main__':
     bridge = sbp.SifiBridge(EXECUTABLE_PATH)
     # Call the stream_data function with the bridge instance.
     stream_data(bridge=bridge)
+
+
+def quaternion_to_euler(qw, qx, qy, qz):
+    """
+    Convert quaternion to Euler angles (roll, pitch, yaw).
+    
+    Parameters:
+    qw, qx, qy, qz: Quaternion components.
+
+    Returns:
+    Roll, Pitch, Yaw in radians.
+    """
+    # Convert quaternion to Euler angles
+    roll = np.arctan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx**2 + qy**2))
+    pitch = np.arcsin(2 * (qw * qy - qz * qx))
+    yaw = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy**2 + qz**2))
+    return roll, pitch, yaw
+
+def update_position(imu_data, delta_t):
+    """
+    Update position based on IMU data.
+    
+    Parameters:
+    imu_data: Dictionary containing acceleration and quaternion data.
+    delta_t: Time interval in seconds.
+
+    Returns:
+    Positions list: List of (x, y, z) positions.
+    """
+    # Initialize position and velocity
+    positions = []
+    vx, vy, vz = 0.0, 0.0, 0.0
+    x, y, z = 0.0, 0.0, 0.0
+
+    for ax, ay, az, qw, qx, qy, qz in zip(imu_data["ax"], imu_data["ay"], imu_data["az"], 
+                                          imu_data["qw"], imu_data["qx"], imu_data["qy"], imu_data["qz"]):
+        
+        # Convert quaternion to Euler angles
+        roll, pitch, yaw = quaternion_to_euler(qw, qx, qy, qz)
+
+        # Create rotation matrix from Euler angles
+        R = np.array([
+            [np.cos(pitch) * np.cos(yaw), np.cos(pitch) * np.sin(yaw), -np.sin(pitch)],
+            [np.sin(roll) * np.sin(pitch) * np.cos(yaw) - np.cos(roll) * np.sin(yaw),
+             np.sin(roll) * np.sin(pitch) * np.sin(yaw) + np.cos(roll) * np.cos(yaw),
+             np.sin(roll) * np.cos(pitch)],
+            [np.cos(roll) * np.sin(pitch) * np.cos(yaw) + np.sin(roll) * np.sin(yaw),
+             np.cos(roll) * np.sin(pitch) * np.sin(yaw) - np.sin(roll) * np.cos(yaw),
+             np.cos(roll) * np.cos(pitch)]
+        ])
+
+        # Rotate acceleration to global frame
+        accel_global = R @ np.array([ax, ay, az])
+        
+        # Update velocities
+        vx += accel_global[0] * delta_t
+        vy += accel_global[1] * delta_t
+        vz += accel_global[2] * delta_t
+
+        # Update positions
+        x += vx * delta_t
+        y += vy * delta_t
+        z += vz * delta_t
+
+        # Store the position
+        positions.append((x, y, z))
+
+    return positions
