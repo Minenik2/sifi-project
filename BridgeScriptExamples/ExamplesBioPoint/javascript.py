@@ -5,18 +5,8 @@ import sifi_bridge_py as sbp
 import pickle
 import os
 import time
-from pythonosc import udp_client
 import calculatePosition
-
-
-# Create an OSC client to send messages to Pure Data
-pd_client = udp_client.SimpleUDPClient("192.168.1.171", 7777)  # Adjust host and port accordingly
-
-
-#Function to send OSC messages to Pure Data
-def send_pd_message(parameter, value):
-    address = f"/biopoint/{parameter}"  # Define OSC address pattern
-    pd_client.send_message(address, value)
+import json
 
 def processDataEMG(emg):
     return np.sqrt(np.abs(emg)) * 1000
@@ -93,7 +83,7 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
                 #print(emg)
                 data["EMG"].extend(emg)
                 # Sends the emg data to max
-                send_pd_message("emg", data["EMG"][-1])
+                #send_pd_message("emg", data["EMG"][-1])
             elif packet["packet_type"] == "eda":
                 eda = packet["data"]["eda"]
                 data["EDA"].extend(eda)
@@ -105,27 +95,14 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
                         for i in range(len(v)):
                             if v[i] is None:
                                 v[i] = 0.0
-                    if "a" in k and data["IMU"][k]:
-                        send_pd_message(k, data["IMU"][k][-1])
+                    #if "a" in k and data["IMU"][k]:
+                        #send_pd_message(k, data["IMU"][k][-1])
                     data["IMU"][k].extend(v)
                     
             elif packet["packet_type"] == "ppg":
                 ppg = packet["data"]
                 for k, v in ppg.items():
                     data["PPG"][k].extend(v)
-            
-            if data["IMU"]["qw"] and data["IMU"]["qx"]\
-                  and data["IMU"]["qy"] \
-                    and data["IMU"]["qz"]:
-                    
-                send_pd_message("pos", calculatePosition.update_position(data["IMU"], 0.01))
-
-                
-                #print(pos)
-                # send_pd_message("POS", pos)
-                    
-            if data["IMU"]:
-                print(calculatePosition.quaternion_to_euler(data["IMU"][-1]))
 
             
 
@@ -141,18 +118,15 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
     except Exception as e:
         print(f"An error occurred during data streaming: {e}")
     finally:
-        print(data["IMU"])
-        # calculatePosition.update_position(data["IMU"], 0.1)
-        calculatePosition.plotIT(calculatePosition.update_position(data["IMU"], 0.01))
         # Stop data streaming and disconnect the bridge.
         bridge.stop()
         bridge.disconnect()
         print("Data streaming stopped and bridge disconnected.")
 
     # Save the collected data to a file.
-    with open(output_file, 'wb') as f:
-        pickle.dump(data, f)
-    print(f"Data saved to {output_file}")
+    with open('biopoint_data.json', 'w') as f:
+        json.dump(data, f)
+    print(f"Data saved! as biopoint_data.json")
 
     # Optionally, process or visualize the data here.
     # For example, plot the ECG data if any was collected.
@@ -167,7 +141,7 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
         # plt.show()
 
 if __name__ == '__main__':
-    EXECUTABLE_PATH = "C:/Users/thomaseo/Desktop/sifi/gitproject/sifi-project/BridgeScriptExamples/sifibridge.exe"
+    EXECUTABLE_PATH = "./sifibridge.exe"
     # Initialize the SifiBridge with the path to the executable.
     bridge = sbp.SifiBridge(EXECUTABLE_PATH)
     # Call the stream_data function with the bridge instance.
