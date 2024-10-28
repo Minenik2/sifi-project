@@ -2,11 +2,23 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import sifi_bridge_py as sbp
-import pickle
-import os
 import time
 import calculatePosition
 import json
+# server managment
+import asyncio
+import websockets
+
+async def data_stream(websocket, data):
+    await websocket.send(json.dumps(data))
+
+# Start the WebSocket server and manage connections
+def start_serverfunc():
+    start_server = websockets.serve(data_stream, "localhost", 8765)
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
+## end of server managment 
+
 
 def processDataEMG(emg):
     return np.sqrt(np.abs(emg)) * 1000
@@ -104,7 +116,8 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
                 for k, v in ppg.items():
                     data["PPG"][k].extend(v)
 
-            
+            ## stream the data
+            data_stream(start_server, data)
 
             #if data["EMG"]:
             #    send_pd_message("emg", data["EMG"][-1])
@@ -142,6 +155,9 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
 
 if __name__ == '__main__':
     EXECUTABLE_PATH = "./sifibridge.exe"
+    # start server
+    start_server = websockets.serve(data_stream, "localhost", 8765)
+    #start_server()
     # Initialize the SifiBridge with the path to the executable.
     bridge = sbp.SifiBridge(EXECUTABLE_PATH)
     # Call the stream_data function with the bridge instance.
