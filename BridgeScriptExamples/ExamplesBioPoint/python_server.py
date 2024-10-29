@@ -1,16 +1,17 @@
 import asyncio
 import websockets
+import json
 
 # define a function to handle incoming messages from clients
 async def handle_data(websocket, path):
-    global clients
-    global fastest_time
     data = await websocket.recv()
     if data:
         # Save the collected data to a file.
         with open('biopoint_data.json', 'w') as f:
             json.dump(data, f)
         print("Data saved! as biopoint_data.json")
+    await websocket.send("data recieved!")
+    
 
 # start the websocket server
 async def start_server():

@@ -12,7 +12,9 @@ import websockets
 # start the websocket client
 async def send_data(data):
     async with websockets.connect("ws://localhost:8765") as websocket:
-        await websocket.send(data)
+        await websocket.send(json.dumps(data))
+        message = await websocket.recv()
+        print(message)
 
 def processDataEMG(emg):
     return np.sqrt(np.abs(emg)) * 1000
@@ -23,7 +25,7 @@ def processDataEMG(emg):
 #for index, row in df_filtered.iterrows():
  #   send_pd_message("emg", row["Duration"])
 
-def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceType.BIOPOINT_V1_3, output_file='collected_data.pkl'):
+def stream_data(bridge, number_of_seconds_to_stream=1990, device_type=sbp.DeviceType.BIOPOINT_V1_3, output_file='collected_data.pkl'):
     """
     Streams data from a BioPoint device for a specified duration.
 
@@ -112,7 +114,7 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
                     data["PPG"][k].extend(v)
 
             ## stream the data
-            send_data(data)
+            asyncio.run(send_data(data))
 
             #if data["EMG"]:
             #    send_pd_message("emg", data["EMG"][-1])
@@ -147,9 +149,6 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
 
 if __name__ == '__main__':
     EXECUTABLE_PATH = "./sifibridge.exe"
-    # start server
-    start_server = websockets.serve(data_stream, "localhost", 8765)
-    #start_server()
     # Initialize the SifiBridge with the path to the executable.
     bridge = sbp.SifiBridge(EXECUTABLE_PATH)
     # Call the stream_data function with the bridge instance.
