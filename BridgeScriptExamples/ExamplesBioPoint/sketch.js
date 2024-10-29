@@ -3,6 +3,9 @@ let ecgData = [];
 let emgData = [];
 let edaData = [];
 
+let emgValues = [];  // Store recent EMG values
+let maxValues = 100; // Maximum number of values to display
+
 console.log("hello")
 
 function setup() {
@@ -26,7 +29,7 @@ function connectWebSocket() {
   // Log each incoming message
   socket.onmessage = (event) => {
     console.log("Received from server:", event.data);
-    emgData.push(event.data)
+    addEmgValue(event.data)
   };
 
   // Handle disconnections and try to reconnect
@@ -37,32 +40,28 @@ function connectWebSocket() {
 }
 
 function draw() {
-  background(220);
-
-  // Plot ECG Data
-  stroke(255, 0, 0);
+  background(0);
   noFill();
-  beginShape();
-  for (let i = 0; i < ecgData.length; i++) {
-    vertex(i, height / 3 - ecgData[i] * 100);
-  }
-  endShape();
+  stroke(255);
 
-  // Plot EMG Data
-  stroke(0, 255, 0);
-  noFill();
-  beginShape();
-  for (let i = 0; i < emgData.length; i++) {
-    vertex(i, height / 2 - emgData[i] * 100);
-  }
-  endShape();
+  // Draw each EMG value as a circle or bar on the screen
+  let barWidth = width / maxValues;
+  for (let i = 0; i < emgValues.length; i++) {
+    let x = i * barWidth;
+    let y = map(emgValues[i], 0, 1023, height, 0); // Mapping EMG to height
 
-  // Plot EDA Data
-  stroke(0, 0, 255);
-  noFill();
-  beginShape();
-  for (let i = 0; i < edaData.length; i++) {
-    vertex(i, (2 * height) / 3 - edaData[i] * 100);
+    // Draw a circle that scales with EMG data
+    let size = map(emgValues[i], 0, 1023, 10, 100); 
+    fill(255, 100, 150, 150); 
+    ellipse(x, height / 2, size, size); 
   }
-  endShape();
 }
+
+function addEmgValue(newValue) {
+  // Add new value to array and remove oldest if over limit
+  emgValues.push(newValue);
+  if (emgValues.length > maxValues) {
+    emgValues.shift();
+  }
+}
+
