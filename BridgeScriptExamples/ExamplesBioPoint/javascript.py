@@ -9,16 +9,10 @@ import json
 import asyncio
 import websockets
 
-async def data_stream(websocket, data):
-    await websocket.send(json.dumps(data))
-
-# Start the WebSocket server and manage connections
-def start_serverfunc():
-    start_server = websockets.serve(data_stream, "localhost", 8765)
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
-## end of server managment 
-
+# start the websocket client
+async def send_data(data):
+    async with websockets.connect("ws://localhost:8765") as websocket:
+        await websocket.send(data)
 
 def processDataEMG(emg):
     return np.sqrt(np.abs(emg)) * 1000
@@ -66,6 +60,7 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
     bridge.set_channels(ecg=True, emg=True, eda=True, imu=True, ppg=True)
     bridge.set_low_latency_mode(on=True)
 
+    
     # Create the structure that will receive the streamed data.
     data = {
         "ECG": [],
@@ -117,7 +112,7 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
                     data["PPG"][k].extend(v)
 
             ## stream the data
-            data_stream(start_server, data)
+            send_data(data)
 
             #if data["EMG"]:
             #    send_pd_message("emg", data["EMG"][-1])
@@ -136,10 +131,7 @@ def stream_data(bridge, number_of_seconds_to_stream=10, device_type=sbp.DeviceTy
         bridge.disconnect()
         print("Data streaming stopped and bridge disconnected.")
 
-    # Save the collected data to a file.
-    with open('biopoint_data.json', 'w') as f:
-        json.dump(data, f)
-    print(f"Data saved! as biopoint_data.json")
+    
 
     # Optionally, process or visualize the data here.
     # For example, plot the ECG data if any was collected.
