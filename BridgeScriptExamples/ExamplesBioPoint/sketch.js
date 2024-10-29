@@ -51,7 +51,7 @@ function draw() {
     let y = map(emgValues[i], 0, 1023, height, 0); // Mapping EMG to height
 
     // Draw a circle that scales with EMG data
-    let size = map(emgValues[i], 0, 1023, 10, 100); 
+    let size = map(emgValues[i]*2, 0, 70, 10, 100); 
     fill(255, 100, 150, 150); 
     ellipse(x, height / 2, size, size); 
   }
