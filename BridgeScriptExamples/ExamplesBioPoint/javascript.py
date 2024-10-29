@@ -12,6 +12,7 @@ import websockets
 # start the websocket client
 async def send_data(data):
     async with websockets.connect("ws://localhost:8765") as websocket:
+        print(data)
         await websocket.send(json.dumps(data))
         message = await websocket.recv()
         print(message)
@@ -113,16 +114,12 @@ def stream_data(bridge, number_of_seconds_to_stream=1990, device_type=sbp.Device
                 for k, v in ppg.items():
                     data["PPG"][k].extend(v)
 
-            ## stream the data
-            asyncio.run(send_data(data))
-
-            #if data["EMG"]:
-            #    send_pd_message("emg", data["EMG"][-1])
-            #    print("Data sent!")
-            #    print(data["EMG"][-1])
-            #    print()
-            #else:
-            #    print("No EMG data available.")
+            if data["EMG"]:
+               asyncio.run(send_data(data["EMG"][-1]))
+               print(data["EMG"][-1])
+               print()
+            else:
+               print("No EMG data available.")
     except KeyboardInterrupt:
         print("Data streaming interrupted by user.")
     except Exception as e:

@@ -3,22 +3,36 @@ let ecgData = [];
 let emgData = [];
 let edaData = [];
 
+console.log("hello")
+
 function setup() {
   createCanvas(800, 600);
   background(220);
 
-  // Connect to WebSocket server
-  socket = new WebSocket('ws://localhost:8765');
-  socket.onmessage = function(event) {
-    let data = JSON.parse(event.data);
-    ecgData.push(data.ECG);
-    emgData.push(data.EMG);
-    edaData.push(data.EDA);
+  // Initialize the WebSocket connection
+  connectWebSocket();
+}
 
-    // Limit stored data to avoid memory overload
-    if (ecgData.length > width) ecgData.shift();
-    if (emgData.length > width) emgData.shift();
-    if (edaData.length > width) edaData.shift();
+function connectWebSocket() {
+  // Create a new WebSocket connection
+  socket = new WebSocket("ws://localhost:8765");
+
+  // When connected to the server
+  socket.onopen = () => {
+    console.log("Connected to the server");
+    socket.send("javascript");
+  };
+
+  // Log each incoming message
+  socket.onmessage = (event) => {
+    console.log("Received from server:", event.data);
+    emgData.push(event.data)
+  };
+
+  // Handle disconnections and try to reconnect
+  socket.onclose = () => {
+    console.log("Disconnected from server, attempting to reconnect...");
+    setTimeout(connectWebSocket, 20); // Try to reconnect after 1 second
   };
 }
 
