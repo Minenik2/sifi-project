@@ -10,10 +10,10 @@ import asyncio
 import websockets
 
 # start the websocket client
-async def send_data(data):
+async def send_data(tag, data):
     async with websockets.connect("ws://localhost:8765") as websocket:
         print(data)
-        await websocket.send(json.dumps(data))
+        await websocket.send(json.dumps([tag, data]))
         message = await websocket.recv()
         print(message)
 
@@ -115,7 +115,7 @@ def stream_data(bridge, number_of_seconds_to_stream=1990, device_type=sbp.Device
                     data["PPG"][k].extend(v)
 
             if data["EMG"]:
-               asyncio.run(send_data(data["EMG"][-1]))
+               asyncio.run(send_data("EMG", data["EMG"][-1]))
                print(data["EMG"][-1])
                print()
             else:

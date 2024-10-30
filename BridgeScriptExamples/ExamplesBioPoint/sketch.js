@@ -28,8 +28,11 @@ function connectWebSocket() {
 
   // Log each incoming message
   socket.onmessage = (event) => {
-    console.log("Received from server:", event.data);
-    addEmgValue(event.data)
+    let data = JSON.parse(event.data)
+    console.log("Received from server:", data);
+    if (data[0] == "EMG") {
+      addEmgValue(data[1])
+    }
   };
 
   // Handle disconnections and try to reconnect

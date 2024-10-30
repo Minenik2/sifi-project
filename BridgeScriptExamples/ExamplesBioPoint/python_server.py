@@ -14,9 +14,11 @@ async def handle_data(websocket, path):
             if dataEMG:
                 await websocket.send(dataEMG[-1])
         else:
-            dataEMG.append(data)
+            dataPacket = json.loads(data)
+            if dataPacket[0] == "EMG":
+                dataEMG.append(data)
             #send confimation to bioarm client
-            print(data)
+            print(dataPacket[0])
             await websocket.send("data send!")
     
 
