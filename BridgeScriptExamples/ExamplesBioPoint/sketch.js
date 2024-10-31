@@ -35,6 +35,8 @@ function connectWebSocket() {
     }
   };
 
+  socket.close(3444, "seconds")
+
   // Handle disconnections and try to reconnect
   socket.onclose = () => {
     console.log(socket.bufferedAmount)

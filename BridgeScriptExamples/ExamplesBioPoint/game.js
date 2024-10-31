@@ -13,6 +13,35 @@ let invincibleStartTime = 0;
 let invincibleDuration = 5000; // 5 seconds in milliseconds
 let gameOver = false;
 
+function connectWebSocket() {
+  // Create a new WebSocket connection
+  socket = new WebSocket("ws://localhost:8765");
+
+  // When connected to the server
+  socket.onopen = () => {
+    console.log("Connected to the server");
+    socket.send("javascript")
+  };
+
+  // Log each incoming message
+  socket.onmessage = (event) => {
+    let data = JSON.parse(event.data)
+    console.log("Received from server:", data);
+    if (data[0] == "EMG") {
+      addEmgValue(data[1])
+    }
+  };
+
+  socket.close(1000, "fullfilled its purpose")
+
+  // Handle disconnections and try to reconnect
+  socket.onclose = () => {
+    console.log(socket.bufferedAmount)
+    console.log("Disconnected from server, attempting to reconnect...");
+    setTimeout(connectWebSocket, 20); // Try to reconnect after 1 second
+  };
+}
+
 function setup() {
   createCanvas(screen_width, screen_height);
   playerX = (screen_width - playerWidth) / 2;
