@@ -1,7 +1,7 @@
 let socket;
-let ecgData = [];
-let emgData = [];
-let edaData = [];
+let pitch = 0;
+let yaw = 0;
+let roll = 0;
 
 let emgValues = [];  // Store recent EMG values
 let maxValues = 100; // Maximum number of values to display
@@ -33,6 +33,15 @@ function connectWebSocket() {
     if (data[0] == "EMG") {
       addEmgValue(data[1])
     }
+    if (data[0] == "PITCH") {
+      pitch = data[1];
+    }
+    if (data[0] == "ROLL") {
+      roll = data[1];
+    }
+    if (data[0] == "YAW") {
+      yaw = data[1];
+    }
   };
 
   // Handle disconnections and try to reconnect
@@ -44,20 +53,17 @@ function connectWebSocket() {
 
 function draw() {
   background(0);
-  noFill();
-  stroke(255);
 
-  // Draw each EMG value as a circle or bar on the screen
-  let barWidth = width / maxValues;
-  for (let i = 0; i < emgValues.length; i++) {
-    let x = i * barWidth;
-    let y = map(emgValues[i], 0, 1023, height, 0); // Mapping EMG to height
+  // Map pitch, yaw, and roll to screen coordinates or properties
+  let x = map(yaw, -90, 90, 0, width);      // Adjust yaw to control x position
+  let y = map(pitch, -90, 90, height, 0);   // Adjust pitch to control y position
+  let size = map(abs(roll), 0, 180, 10, 100); // Adjust roll to control circle size
 
-    // Draw a circle that scales with EMG data
-    let size = map(emgValues[i]*10, 0, 70, 10, 100); 
-    fill(255, 100, 150, 150); 
-    ellipse(x, height / 2, size, size); 
-  }
+  // Draw the circle based on pitch, yaw, and roll values
+  fill(100, 150, 255, 150);
+  noStroke();
+  ellipse(x, y, size + 1000);
+  
 }
 
 function addEmgValue(newValue) {
