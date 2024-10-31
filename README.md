@@ -19,4 +19,17 @@ PIP install sifi-bridge-py
 
 copy the executable from pub examples into the sifi folder
 
+## setting up a server
+
+in the project folder write in terminal python BridgeScriptExamples\ExamplesBiopoint\python_server.py
+this will start a websocket server using the python dependencies, this is also used by the javascript website,
+
+Then in another terminal start the bioarm client by writing: python bridgescriptexamples\Examplesbiopoint\javavscript.py  
+this will launch a connection with the bioarm via bluetooth, it will automatically start gathering data and sending it into the python socketserver
+
+lastly you'll now need to open the website index.html, in vsCode you can open it with live server, this will show a visualized display of the data true javascript library called p5.js
+
+Thats it for now! <3
+
+
 
