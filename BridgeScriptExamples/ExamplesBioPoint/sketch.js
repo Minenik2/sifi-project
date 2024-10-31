@@ -23,7 +23,7 @@ function connectWebSocket() {
   // When connected to the server
   socket.onopen = () => {
     console.log("Connected to the server");
-    socket.send("javascript");
+    socket.send("javascript")
   };
 
   // Log each incoming message
@@ -37,6 +37,7 @@ function connectWebSocket() {
 
   // Handle disconnections and try to reconnect
   socket.onclose = () => {
+    console.log(socket.bufferedAmount)
     console.log("Disconnected from server, attempting to reconnect...");
     setTimeout(connectWebSocket, 20); // Try to reconnect after 1 second
   };
