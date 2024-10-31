@@ -8,19 +8,48 @@ import json
 # server managment
 import asyncio
 import websockets
+# calculate position
+import math
 
 # start the websocket client
-async def send_data(data):
+async def send_data(tag, data):
     async with websockets.connect("ws://localhost:8765") as websocket:
         print(data)
-        await websocket.send(json.dumps(data))
+        await websocket.send(json.dumps([tag, data]))
         message = await websocket.recv()
         print(message)
 
 def processDataEMG(emg):
     return np.sqrt(np.abs(emg)) * 1000
 
+# calculating the pitch jaw and roll from the IMU data
+def quaternion_to_euler(qw, qx, qy, qz):
+    """
+    Convert a quaternion into Euler angles (pitch, roll, yaw).
+    
+    Parameters:
+    qw, qx, qy, qz: Quaternion components.
+    
+    Returns:
+    A tuple of (pitch, roll, yaw) in radians.
+    """
+    # Roll (X-axis rotation)
+    roll = math.atan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx * qx + qy * qy))
+    
+    # Pitch (Y-axis rotation)
+    sinp = 2 * (qw * qy - qz * qx)
+    if abs(sinp) >= 1:
+        pitch = math.copysign(math.pi / 2, sinp)  # Use 90 degrees if out of range
+    else:
+        pitch = math.asin(sinp)
+    
+    # Yaw (Z-axis rotation)
+    yaw = math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz))
+    
+    return pitch, roll, yaw
 
+
+    
 
 #Send data to Pure Data
 #for index, row in df_filtered.iterrows():
@@ -75,6 +104,7 @@ def stream_data(bridge, number_of_seconds_to_stream=1990, device_type=sbp.Device
 
     # Start data streaming.
     bridge.start()
+    first_packet_ignored = False # packet lock for IMU
     start_time = time.time()
     print(f"Started streaming data for {number_of_seconds_to_stream} seconds...")
     try:
@@ -99,6 +129,42 @@ def stream_data(bridge, number_of_seconds_to_stream=1990, device_type=sbp.Device
                 data["EDA"].extend(eda)
             elif packet["packet_type"] == "imu":
                 imu = packet["data"]
+                
+                # code taken from tom on how to handle IMU data
+                # Ignore the first IMU packet.
+                if not first_packet_ignored:
+                    first_packet_ignored = True
+                    print("First IMU packet ignored.")
+                    continue  # Skip processing the first packet.
+                # Ensure quaternion values are present in the IMU data.
+                if all(param in imu and len(imu[param]) == 8 for param in ["qw", "qx", "qy", "qz"]):
+                    pitch_list = []
+                    roll_list = []
+                    yaw_list = []
+                    
+                    # Process all 8 values in the packet.
+                    for i in range(8):
+                        qw = imu["qw"][i]
+                        qx = imu["qx"][i]
+                        qy = imu["qy"][i]
+                        qz = imu["qz"][i]
+                        
+                        # Calculate pitch, roll, and yaw for this set of quaternion values.
+                        pitch, roll, yaw = quaternion_to_euler(qw, qx, qy, qz)
+                        
+                        # Append to the corresponding lists.
+                        pitch_list.append(pitch)
+                        roll_list.append(roll)
+                        yaw_list.append(yaw)
+                    
+                    # Send the lists of pitch, roll, and yaw values over UDP.
+                    asyncio.run(send_data("PITCH", pitch_list))
+                    asyncio.run(send_data("ROLL", roll_list))
+                    asyncio.run(send_data("YAW", yaw_list))  
+                    
+                    ## end of toms IMU code ##
+                
+                
                 for k, v in imu.items():
                     ## if its none is in the dataset, set none to 0
                     if v[0] is None:
@@ -115,7 +181,7 @@ def stream_data(bridge, number_of_seconds_to_stream=1990, device_type=sbp.Device
                     data["PPG"][k].extend(v)
 
             if data["EMG"]:
-               asyncio.run(send_data(data["EMG"][-1]))
+               asyncio.run(send_data("EMG", data["EMG"][-1]))
                print(data["EMG"][-1])
                print()
             else:
@@ -150,3 +216,7 @@ if __name__ == '__main__':
     bridge = sbp.SifiBridge(EXECUTABLE_PATH)
     # Call the stream_data function with the bridge instance.
     stream_data(bridge=bridge)
+    
+
+    
+    
