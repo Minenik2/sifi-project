@@ -18,7 +18,7 @@ function setup() {
 
 function connectWebSocket() {
   // Create a new WebSocket connection
-  socket = new WebSocket("ws://localhost:8765");
+  socket = new WebSocket("ws://localhost:8735");
 
   // When connected to the server
   socket.onopen = () => {
@@ -35,11 +35,8 @@ function connectWebSocket() {
     }
   };
 
-  socket.close(3444, "seconds")
-
   // Handle disconnections and try to reconnect
   socket.onclose = () => {
-    console.log(socket.bufferedAmount)
     console.log("Disconnected from server, attempting to reconnect...");
     setTimeout(connectWebSocket, 20); // Try to reconnect after 1 second
   };
@@ -57,7 +54,7 @@ function draw() {
     let y = map(emgValues[i], 0, 1023, height, 0); // Mapping EMG to height
 
     // Draw a circle that scales with EMG data
-    let size = map(emgValues[i]*2, 0, 70, 10, 100); 
+    let size = map(emgValues[i]*10, 0, 70, 10, 100); 
     fill(255, 100, 150, 150); 
     ellipse(x, height / 2, size, size); 
   }
