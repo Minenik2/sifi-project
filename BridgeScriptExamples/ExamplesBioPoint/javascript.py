@@ -13,7 +13,7 @@ import math
 
 # start the websocket client
 async def send_data(tag, data):
-    async with websockets.connect("ws://localhost:8765") as websocket:
+    async with websockets.connect("ws://localhost:8735") as websocket:
         print(data)
         await websocket.send(json.dumps([tag, data]))
         message = await websocket.recv()
