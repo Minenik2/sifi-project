@@ -6,8 +6,6 @@ let roll = 0;
 let emgValues = [];  // Store recent EMG values
 let maxValues = 100; // Maximum number of values to display
 
-console.log("hello")
-
 function setup() {
   createCanvas(800, 600);
   background(220);
@@ -23,35 +21,34 @@ function connectWebSocket() {
   // When connected to the server
   socket.onopen = () => {
     console.log("Connected to the server");
-    socket.send("javascript")
+    socket.send("javascript");
   };
 
-  // Log each incoming message
+  // Handle incoming messages
   socket.onmessage = (event) => {
-    let data = JSON.parse(event.data)
+    const data = JSON.parse(event.data); // Expecting JSON object with all values at once
     console.log("Received from server:", data);
-    if (data[0] == "EMG") {
-      addEmgValue(data[1])
-    }
-    if (data[0] == "PITCH") {
-      pitch = data[1];
-    }
-    if (data[0] == "ROLL") {
-      roll = data[1];
-    }
-    if (data[0] == "YAW") {
-      yaw = data[1];
-    }
+
+    if (data.EMG !== undefined) addEmgValue(data.EMG);
+    if (data.PITCH !== undefined) pitch = data.PITCH;
+    if (data.ROLL !== undefined) roll = data.ROLL;
+    if (data.YAW !== undefined) yaw = data.YAW;
+
+    drawCircle();  // Draw only on new data received
   };
 
   // Handle disconnections and try to reconnect
   socket.onclose = () => {
     console.log("Disconnected from server, attempting to reconnect...");
-    setTimeout(connectWebSocket, 20); // Try to reconnect after 1 second
+    setTimeout(connectWebSocket, 1000); // Try to reconnect after 1 second
   };
 }
 
 function draw() {
+  // Kept empty to avoid redundant rendering. Drawing is triggered by `drawCircle` on data receipt.
+}
+
+function drawCircle() {
   background(0);
 
   // Map pitch, yaw, and roll to screen coordinates or properties
@@ -63,14 +60,10 @@ function draw() {
   fill(100, 150, 255, 150);
   noStroke();
   ellipse(x, y, size + 1000);
-  
 }
 
 function addEmgValue(newValue) {
   // Add new value to array and remove oldest if over limit
   emgValues.push(newValue);
-  if (emgValues.length > maxValues) {
-    emgValues.shift();
-  }
+  if (emgValues.length > maxValues) emgValues.shift();
 }
-
