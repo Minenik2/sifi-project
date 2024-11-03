@@ -3,7 +3,7 @@ let pitch = 0;
 let yaw = 0;
 let roll = 0;
 
-let emgValues = [];  // Store recent EMG values
+let emgValues = []; // Store recent EMG values
 let maxValues = 100; // Maximum number of values to display
 
 function setup() {
@@ -34,7 +34,7 @@ function connectWebSocket() {
     if (data.ROLL !== undefined) roll = data.ROLL;
     if (data.YAW !== undefined) yaw = data.YAW;
 
-    drawCircle();  // Draw only on new data received
+    drawCircle(); // Draw only on new data received
   };
 
   // Handle disconnections and try to reconnect
@@ -52,8 +52,8 @@ function drawCircle() {
   background(0);
 
   // Map pitch, yaw, and roll to screen coordinates or properties
-  let x = map(yaw, -90, 90, 0, width);      // Adjust yaw to control x position
-  let y = map(pitch, -90, 90, height, 0);   // Adjust pitch to control y position
+  let x = map(yaw, -90, 90, 0, width); // Adjust yaw to control x position
+  let y = map(pitch, -90, 90, height, 0); // Adjust pitch to control y position
   let size = map(abs(roll), 0, 180, 10, 100); // Adjust roll to control circle size
 
   // Draw the circle based on pitch, yaw, and roll values
